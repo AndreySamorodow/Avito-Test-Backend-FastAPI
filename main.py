@@ -8,7 +8,7 @@ from database.models import Base
 
 from service import generate_short_url, get_url_by_slug
 
-from exception import NotFoundLongUrl, SlugAlredyExistError
+from exception import CustomSlugNotValid, NotFoundLongUrl, SlugAlredyExistError, URLNotValid
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,12 +21,17 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/short_url")
-async def generate_slug(long_url: str = Body(embed=True)):
+async def generate_slug(long_url: str, custom_slug: str = None):
     try:
-        new_slug = await generate_short_url(long_url)
+        new_slug = await generate_short_url(long_url, custom_slug)
         return {"data":new_slug}
+    
     except SlugAlredyExistError:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except URLNotValid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="URL not valid")
+    except CustomSlugNotValid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Custom short URL not valid")
 
 
 @app.get("/{slug}")
