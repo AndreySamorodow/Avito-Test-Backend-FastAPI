@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from exception import SlugAlredyExistError
+from src.exception import SlugAlredyExistError
 
 
 async def add_slug_to_database(slug: str, long_url: str, session: AsyncSession):

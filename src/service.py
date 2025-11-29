@@ -1,6 +1,6 @@
 from database.crud import add_slug_to_database, get_long_url_by_slug_from_database
-from shortener import generate_random_slug
-from exception import NotFoundLongUrl, SlugAlredyExistError, URLNotValid, CustomSlugNotValid
+from src.shortener import generate_random_slug
+from src.exception import NotFoundLongUrl, SlugAlredyExistError, URLNotValid, CustomSlugNotValid
 import validators
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,12 +9,10 @@ async def generate_short_url(long_url: str, session: AsyncSession, custom_slug: 
     if not validators.url(long_url):
         raise URLNotValid
 
-    # Если передан кастомный slug, проверяем его сразу
     if custom_slug is not None:
         if len(custom_slug) != 6:
             raise CustomSlugNotValid
         
-        # Проверяем, не существует ли уже такой slug
         existing_url = await get_long_url_by_slug_from_database(custom_slug, session)
         if existing_url:
             raise SlugAlredyExistError
@@ -22,11 +20,9 @@ async def generate_short_url(long_url: str, session: AsyncSession, custom_slug: 
         await add_slug_to_database(custom_slug, long_url, session)
         return custom_slug
 
-    # Генерируем случайный slug
     for attempt in range(5):
         slug = generate_random_slug()
         
-        # Проверяем, не существует ли уже такой slug
         existing_url = await get_long_url_by_slug_from_database(slug, session)
         if not existing_url:
             await add_slug_to_database(slug, long_url, session)

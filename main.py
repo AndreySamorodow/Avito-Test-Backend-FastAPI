@@ -5,13 +5,13 @@ from fastapi import Depends, FastAPI, status, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from exception import CustomSlugNotValid, NotFoundLongUrl, SlugAlredyExistError, URLNotValid
+from src.exception import CustomSlugNotValid, NotFoundLongUrl, SlugAlredyExistError, URLNotValid
 
 from database.db import engine, new_session
 from database.models import Base
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from service import generate_short_url, get_url_by_slug
+from src.service import generate_short_url, get_url_by_slug
 
 
 @asynccontextmanager
@@ -22,7 +22,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Настройка CORS - разрешаем все для разработки
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,7 +47,6 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# Обновленный эндпоинт с моделью Pydantic
 @app.post("/short_url")
 async def generate_slug(
     request: ShortUrlRequest,
