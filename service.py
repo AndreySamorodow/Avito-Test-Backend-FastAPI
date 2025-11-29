@@ -3,32 +3,43 @@ from shortener import generate_random_slug
 from exception import NotFoundLongUrl, SlugAlredyExistError, URLNotValid, CustomSlugNotValid
 import validators
 
-async def generate_short_url(long_url:str, custom_slug:str = None) -> str:
+from sqlalchemy.ext.asyncio import AsyncSession
+
+async def generate_short_url(long_url: str, session: AsyncSession, custom_slug: str = None) -> str:
     if not validators.url(long_url):
         raise URLNotValid
 
-    async def generate(long_url:str):
-        slug = generate_random_slug()
-        if custom_slug != None:
-            if len(custom_slug) != 6:
-                raise CustomSlugNotValid
-            slug = custom_slug
+    # Если передан кастомный slug, проверяем его сразу
+    if custom_slug is not None:
+        if len(custom_slug) != 6:
+            raise CustomSlugNotValid
+        
+        # Проверяем, не существует ли уже такой slug
+        existing_url = await get_long_url_by_slug_from_database(custom_slug, session)
+        if existing_url:
+            raise SlugAlredyExistError
+        
+        await add_slug_to_database(custom_slug, long_url, session)
+        return custom_slug
 
-        await add_slug_to_database(slug, long_url)
-        return slug
-
+    # Генерируем случайный slug
     for attempt in range(5):
-        try:
-            slug = await generate(long_url)
+        slug = generate_random_slug()
+        
+        # Проверяем, не существует ли уже такой slug
+        existing_url = await get_long_url_by_slug_from_database(slug, session)
+        if not existing_url:
+            await add_slug_to_database(slug, long_url, session)
             return slug
-        except SlugAlredyExistError as ex:
-            if attempt == 4:
-                raise SlugAlredyExistError from ex
+            
+        if attempt == 4:
+            raise SlugAlredyExistError("Could not generate unique slug after 5 attempts")
+    
     return slug
     
 
-async def get_url_by_slug(slug:str) -> str:
-    long_url = await get_long_url_by_slug_from_database(slug)
+async def get_url_by_slug(slug:str, session: AsyncSession) -> str:
+    long_url = await get_long_url_by_slug_from_database(slug, session)
     if not long_url:
         raise NotFoundLongUrl()
     return long_url

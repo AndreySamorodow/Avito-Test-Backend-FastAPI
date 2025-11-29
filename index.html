@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сократитель URL</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .short-url {
+            font-weight: bold;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .copy-btn {
+            background-color: #28a745;
+            width: auto;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover {
+            background-color: #218838;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .instructions h2 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Сократитель URL</h1>
+        
+        <div class="form-group">
+            <label for="longUrl">Введите длинный URL:</label>
+            <input type="text" id="longUrl" placeholder="https://example.com/very-long-url-path">
+        </div>
+        
+        <div class="form-group">
+            <label for="customSlug">Желаемый короткий код (необязательно):</label>
+            <input type="text" id="customSlug" placeholder="my-custom-slug">
+        </div>
+        
+        <button id="generateBtn">Создать короткую ссылку</button>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="instructions">
+            <h2>Как это работает:</h2>
+            <ol>
+                <li>Введите длинный URL в первое поле</li>
+                <li>При желании укажите свой короткий код (только латинские буквы, цифры и дефисы)</li>
+                <li>Нажмите "Создать короткую ссылку"</li>
+                <li>Скопируйте полученную короткую ссылку и используйте её</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        document.getElementById('generateBtn').addEventListener('click', async function() {
+            const longUrl = document.getElementById('longUrl').value.trim();
+            const customSlug = document.getElementById('customSlug').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.className = 'result';
+            resultDiv.style.display = 'none';
+            
+            if (!longUrl) {
+                showError('Пожалуйста, введите URL');
+                return;
+            }
+            
+            this.disabled = true;
+            this.textContent = 'Создание...';
+            
+            try {
+                const requestData = {
+                    long_url: longUrl
+                };
+                
+                if (customSlug) {
+                    requestData.custom_slug = customSlug;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/short_url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const shortUrl = `${API_BASE_URL}/${data.data}`;
+                    showSuccess(`
+                        <p>Ваша короткая ссылка создана:</p>
+                        <div class="short-url">${shortUrl}</div>
+                        <button class="copy-btn" onclick="copyToClipboard('${shortUrl}')">Скопировать</button>
+                    `);
+                } else {
+                    let errorDetail = '';
+                    try {
+                        const errorData = await response.json();
+                        errorDetail = errorData.detail || `HTTP ${response.status}`;
+                    } catch {
+                        errorDetail = `HTTP ${response.status}`;
+                    }
+                    
+                    showError(`Ошибка сервера: ${errorDetail}`);
+                }
+            } catch (error) {
+                showError('Не удалось соединиться с сервером');
+            } finally {
+                this.disabled = false;
+                this.textContent = 'Создать короткую ссылку';
+            }
+        });
+        
+        function showSuccess(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = 'result success';
+            resultDiv.style.display = 'block';
+        }
+        
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<p>${message}</p>`;
+            resultDiv.className = 'result error';
+            resultDiv.style.display = 'block';
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Ссылка скопирована в буфер обмена!');
+            });
+        }
+    </script>
+</body>
+</html>
