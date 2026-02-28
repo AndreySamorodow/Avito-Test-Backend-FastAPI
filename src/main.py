@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from src.exception import CustomSlugNotValid, NotFoundLongUrl, SlugAlredyExistError, URLNotValid
 
-from database.db import engine, new_session
-from database.models import Base
+from src.database.db import engine, new_session
+from src.database.models import Base
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.service import generate_short_url, get_url_by_slug

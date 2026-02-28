@@ -1,4 +1,4 @@
-from database.crud import add_slug_to_database, get_long_url_by_slug_from_database
+from src.database.crud import add_slug_to_database, get_long_url_by_slug_from_database
 from src.shortener import generate_random_slug
 from src.exception import NotFoundLongUrl, SlugAlredyExistError, URLNotValid, CustomSlugNotValid
 import validators
